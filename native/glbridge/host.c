@@ -78,6 +78,7 @@ struct conn {
     EGLContext pctx;
     EGLSurface psurf;
     unsigned pgen;
+    uint64_t pretry;            /* (monotonic ms of the last try at a window surface for the same view) */
     GLuint pprog;
     struct { uint64_t id; unsigned long serial, use; GLuint tex; } ptex[4];
 };
@@ -944,12 +945,19 @@ static uint32_t present(uint64_t id, int w, int h) {
     if (C->ctx) return 0;       /* (a drawing thread: not the composer) */
     pthread_mutex_lock(&g_win_lock);
     if (C->pctx == EGL_NO_CONTEXT) C->pctx = eglCreateContext(g_dpy, g_cfg, EGL_NO_CONTEXT, ca);
-    if (C->pctx != EGL_NO_CONTEXT && (C->pgen != g_win_gen || C->psurf == EGL_NO_SURFACE)) {
-        int fresh = C->pgen != g_win_gen;
+    /* A failed swap (the app went to the background) drops the window surface. Android may hand the same view
+     * back on resume without a new GlHost.surface call, so the view number stays the same: try again for that
+     * view too, at most twice a second, instead of waiting for a number that may never come. */
+    struct timespec nowts; clock_gettime(CLOCK_MONOTONIC, &nowts);
+    uint64_t now = (uint64_t)nowts.tv_sec * 1000 + nowts.tv_nsec / 1000000;
+    int fresh = C->pgen != g_win_gen;
+    int retry = !fresh && C->psurf == EGL_NO_SURFACE && g_win && now - C->pretry >= 500;
+    if (C->pctx != EGL_NO_CONTEXT && (fresh || retry)) {
         eglMakeCurrent(g_dpy, EGL_NO_SURFACE, EGL_NO_SURFACE, EGL_NO_CONTEXT);
         if (C->psurf != EGL_NO_SURFACE) eglDestroySurface(g_dpy, C->psurf);
-        C->psurf = g_win && fresh ? eglCreateWindowSurface(g_dpy, g_cfg, g_win, 0) : EGL_NO_SURFACE;
+        C->psurf = g_win ? eglCreateWindowSurface(g_dpy, g_cfg, g_win, 0) : EGL_NO_SURFACE;
         if (g_win && fresh && C->psurf == EGL_NO_SURFACE) LOG("no window surface for the screen: 0x%x", eglGetError());
+        C->pretry = now;
         C->pgen = g_win_gen;
         if (C->psurf != EGL_NO_SURFACE) {
             if (eglMakeCurrent(g_dpy, C->psurf, C->psurf, C->pctx)) eglSwapInterval(g_dpy, 0);     /* the guest keeps its own pace */
@@ -999,9 +1007,9 @@ static uint32_t present(uint64_t id, int w, int h) {
             if (!eglSwapBuffers(g_dpy, C->psurf)) {         /* the view is gone under us: a new one comes with its number */
                 eglMakeCurrent(g_dpy, EGL_NO_SURFACE, EGL_NO_SURFACE, EGL_NO_CONTEXT);
                 eglDestroySurface(g_dpy, C->psurf); C->psurf = EGL_NO_SURFACE;
-            }
+            } else g_presented++;
+            /* (only frames that really reached the view count: the app keeps the last one on screen until then) */
         }
-        if (known) g_presented++;
     }
     pthread_mutex_unlock(&g_win_lock);
     return known;

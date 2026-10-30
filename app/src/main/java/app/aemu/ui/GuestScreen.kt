@@ -62,6 +62,8 @@ class GuestScreen(ctx: Context, private val w: Int, private val h: Int) : View(c
     private var changedAt = 0L
     private var quiet = 0
     @Volatile private var live = false
+    private val fallbackLock = Any()
+    private var fallback: Bitmap? = null
     private val gate = Object()
     private val paint = Paint().apply { isFilterBitmap = true }
     private val dst = Rect()
@@ -80,7 +82,26 @@ class GuestScreen(ctx: Context, private val w: Int, private val h: Int) : View(c
     fun stop() { live = false }
 
     /** Copy of the last frame shown from fb0 (software path); null in GPU passthrough or before the first frame. */
-    fun snapshot(): Bitmap? = if (passthrough) null else bmp?.copy(Bitmap.Config.ARGB_8888, false)
+    fun snapshot(): Bitmap? = synchronized(fallbackLock) { fallback?.copy(Bitmap.Config.ARGB_8888, false) }
+        ?: bmp?.takeUnless { passthrough }?.copy(Bitmap.Config.ARGB_8888, false)
+
+    /** Keep the last host frame visible while SurfaceView's buffer queue is recreated after backgrounding. */
+    fun showFallback(frame: Bitmap?) {
+        synchronized(fallbackLock) {
+            fallback?.takeIf { it !== frame }?.recycle()
+            fallback = frame
+            passthrough = false
+        }
+        postInvalidate()
+        poke()
+    }
+
+    private fun clearFallback() {
+        synchronized(fallbackLock) {
+            fallback?.recycle()
+            fallback = null
+        }
+    }
 
     fun poke() { quiet = 0; synchronized(gate) { gate.notifyAll() } }
 
@@ -94,6 +115,7 @@ class GuestScreen(ctx: Context, private val w: Int, private val h: Int) : View(c
                 directFrames += n - directSeen
                 shown += n - directSeen
                 directSeen = n
+                clearFallback()
                 if (!passthrough) { passthrough = true; countSeen = fbCount(); directFrames = 0; directAt = now }
                 if (now - directAt > 1000) { fps = directFrames * 1000f / (now - directAt); directFrames = 0; directAt = now; android.util.Log.d("aemu-screen", "gpu %.1f fps".format(fps)) }
             } else if (passthrough) {
@@ -182,6 +204,9 @@ class GuestScreen(ctx: Context, private val w: Int, private val h: Int) : View(c
     override fun onDraw(c: Canvas) {
         dst.set(0, 0, width, height)
         if (passthrough) return
+        synchronized(fallbackLock) {
+            fallback?.takeUnless { it.isRecycled }?.let { c.drawBitmap(it, null, dst, paint); return }
+        }
         val b = bmp
         if (b != null) c.drawBitmap(b, null, dst, paint) else c.drawColor(0xff000000.toInt())
     }

@@ -329,10 +329,17 @@ class VmActivity : ComponentActivity() {
 
     override fun onResume() {
         super.onResume()
-        if (::vm.isInitialized) vm.sensors.resume(true)
+        if (::vm.isInitialized) {
+            vm.sensors.resume(true)
+            // SurfaceView can hand back the same Surface after the background without surfaceCreated/Changed,
+            // while the GPU bridge already dropped its window surface on a failed swap. Hand it over again so
+            // the bridge starts on a fresh window.
+            if (::surfaceView.isInitialized && surfaceView.holder.surface.isValid) vm.surface = surfaceView.holder.surface
+        }
     }
 
     override fun onPause() {
+        if (::surfaceView.isInitialized && ::guest.isInitialized) cacheGpuFrame()
         if (::vm.isInitialized) vm.sensors.resume(false)
         super.onPause()
     }
@@ -445,6 +452,22 @@ class VmActivity : ComponentActivity() {
         return true
     }
 
+    /** In GPU passthrough the guest only sends a frame when its screen changes, and SurfaceView comes back from the
+     * background with an empty buffer queue: a still screen would stay black until something moves. Keep the last
+     * GPU frame in the overlay view until the next one is really shown. */
+    private fun cacheGpuFrame() {
+        val sw = surfaceView.width
+        val sh = surfaceView.height
+        if (sw <= 0 || sh <= 0 || !surfaceView.holder.surface.isValid) return
+        val frame = android.graphics.Bitmap.createBitmap(sw, sh, android.graphics.Bitmap.Config.ARGB_8888)
+        runCatching {
+            android.view.PixelCopy.request(surfaceView, frame, { result ->
+                if (result == android.view.PixelCopy.SUCCESS) guest.showFallback(frame)
+                else frame.recycle()
+            }, android.os.Handler(mainLooper))
+        }.onFailure { frame.recycle() }
+    }
+
     /** VNC on/off. Each session gets a password of its own, shown here and in the log. */
     private fun toggleVnc() {
         vnc?.let { it.stop(); vnc = null; vncOn.value = false; return }
@@ -483,7 +506,10 @@ class VmActivity : ComponentActivity() {
         recorder = r; recOn.value = true
     }
 
-    // APK picked on the host: copied into the shared card folder, then installed by the guest's package manager
+    // APK picked on the host: copied into the shared card folder, then installed by the guest's package manager.
+    // The guest path is always /sdcard: the firmware's own card path (img.sdcardPath, e.g. /storage/emulated/legacy)
+    // is not resolvable by pm on every firmware, while /sdcard points at the shared folder on all of them.
+    private val installApkPath = "/sdcard/aemu-install.apk"
     private val pickApk = registerForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
         if (uri == null) return@registerForActivityResult
         val dir = app.aemu.core.Sdcard.hostDir(vm.paths)
@@ -494,7 +520,7 @@ class VmActivity : ComponentActivity() {
                 contentResolver.openInputStream(uri)!!.use { i -> java.io.File(dir, "aemu-install.apk").outputStream().use { o -> i.copyTo(o) } }
             }.isSuccess
             if (!ok) { toast(getString(R.string.m_failed)); return@thread }
-            val out = runCatching { vm.guestShell("pm install -r " + vm.img.sdcardPath.trimEnd('/') + "/aemu-install.apk", 300_000) }.getOrElse { it.toString() }
+            val out = runCatching { vm.installApk(installApkPath) }.getOrElse { it.toString() }
             runCatching { app.aemu.core.TreeFixer(this@VmActivity, vm.paths, vm.img, vm::log).seedOwners() }
             toast(out.trim().lines().lastOrNull { it.isNotBlank() }?.take(200) ?: getString(R.string.m_failed))
         }
