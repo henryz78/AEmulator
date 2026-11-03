@@ -13,7 +13,7 @@ S = {
     "name": "Nazwa",
     "save": "Zapisz",
     "storage_title": "Wspólny folder systemów",
-    "storage_text": "Zezwól na dostęp do wszystkich plików: karta pamięci każdego systemu będzie w folderze AEmulator w pamięci wewnętrznej — wygodnie na APK, muzykę i zdjęcia.",
+    "storage_text": "Zezwól na dostęp do wszystkich plików: karta pamięci każdego systemu będzie w folderze ZEmu w pamięci wewnętrznej — wygodnie na APK, muzykę i zdjęcia.",
     "allow": "Zezwól",
     "empty_title": "Brak systemów",
     "empty_text": "Dodaj firmware ARM dla Androida 2.3–6.0: ZIP do recovery, archiwum Odin (.tar.md5), system.img lub obraz fabryczny.",
@@ -95,5 +95,5 @@ S = {
     "as_ton": "Toncoin (TON)",
     "as_copied": "Skopiowano adres",
     "as_version": "Wersja %1$s",
-    "as_about": "AEmulator uruchamia klasyczne firmware Androida na nowoczesnych telefonach. Za darmo i open source.",
+    "as_about": "ZEmu uruchamia klasyczne firmware Androida na nowoczesnych telefonach. Za darmo i open source.",
 }

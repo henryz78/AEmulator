@@ -607,7 +607,7 @@ class VmActivity : ComponentActivity() {
     @Composable
     private fun SmsDialog(onDone: () -> Unit) {
         var from by remember { mutableStateOf("+10000000000") }
-        var body by remember { mutableStateOf("Hello from AEmulator") }
+        var body by remember { mutableStateOf("Hello from ZEmu") }
         AlertDialog(onDismissRequest = onDone,
             title = { Text(stringResource(R.string.m_sms)) },
             text = {
@@ -1248,7 +1248,7 @@ class VmActivity : ComponentActivity() {
 
     private fun copyLog(lines: List<String>) {
         val cm = getSystemService(ClipboardManager::class.java)
-        cm.setPrimaryClip(ClipData.newPlainText("AEmulator log", lines.joinToString("\n")))
+        cm.setPrimaryClip(ClipData.newPlainText("ZEmu log", lines.joinToString("\n")))
         Toast.makeText(this, R.string.log_copied, Toast.LENGTH_SHORT).show()
     }
 

@@ -13,7 +13,7 @@ S = {
     "name": "Tên",
     "save": "Lưu",
     "storage_title": "Thư mục chung cho hệ thống",
-    "storage_text": "Cho phép truy cập mọi tệp: thẻ nhớ của mỗi hệ thống sẽ nằm trong thư mục AEmulator của bộ nhớ trong — tiện để chép APK, nhạc và ảnh.",
+    "storage_text": "Cho phép truy cập mọi tệp: thẻ nhớ của mỗi hệ thống sẽ nằm trong thư mục ZEmu của bộ nhớ trong — tiện để chép APK, nhạc và ảnh.",
     "allow": "Cho phép",
     "empty_title": "Chưa có hệ thống nào",
     "empty_text": "Thêm firmware ARM cho Android 2.3–6.0: ZIP recovery, gói Odin (.tar.md5), system.img hoặc factory image.",
@@ -95,5 +95,5 @@ S = {
     "as_ton": "Toncoin (TON)",
     "as_copied": "Đã sao chép địa chỉ",
     "as_version": "Phiên bản %1$s",
-    "as_about": "AEmulator chạy firmware Android cổ điển trên điện thoại hiện đại. Miễn phí và mã nguồn mở.",
+    "as_about": "ZEmu chạy firmware Android cổ điển trên điện thoại hiện đại. Miễn phí và mã nguồn mở.",
 }

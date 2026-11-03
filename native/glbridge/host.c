@@ -488,7 +488,7 @@ static void h_glUseProgram(GLuint program) {
 static void fix_units(void) {
     struct hctx *x = C->ctx;
     static int off = -1;        /* DEBUG: files/glnofix switches this off (read once per run) */
-    if (off < 0) off = access("/data/data/app.aemu/files/glnofix", F_OK) == 0;
+    if (off < 0) off = access("/data/data/app.zemu/files/glnofix", F_OK) == 0;
     if (!x || off) return;
     int want = x->prog_ext, moved = 0;
     for (int u = 0; u < 32; u++) {
@@ -1319,7 +1319,7 @@ static void *serve(void *arg) {
         else {
             /* debugging: with files/gltrace present every call goes to the log (op, length, first words, the pid) */
             static unsigned trace_n = 0;
-            if ((trace_n++ & 4095) == 0) trace_on = access("/data/data/app.aemu/files/gltrace", F_OK) == 0;
+            if ((trace_n++ & 4095) == 0) trace_on = access("/data/data/app.zemu/files/gltrace", F_OK) == 0;
             if (trace_on) {
                 uint32_t w[6] = { 0 };
                 memcpy(w, c.in + c.in_a + 8, len < sizeof(w) ? len : sizeof(w));

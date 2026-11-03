@@ -13,7 +13,7 @@ S = {
     "name": "名称",
     "save": "保存",
     "storage_title": "系统共享文件夹",
-    "storage_text": "允许访问所有文件后，每个系统的存储卡都位于内部存储的 AEmulator 文件夹中，方便放入 APK、音乐和照片。",
+    "storage_text": "允许访问所有文件后，每个系统的存储卡都位于内部存储的 ZEmu 文件夹中，方便放入 APK、音乐和照片。",
     "allow": "允许",
     "empty_title": "还没有系统",
     "empty_text": "添加适用于 Android 2.3–6.0 的 ARM 固件：Recovery 卡刷包、Odin 包（.tar.md5）、system.img 或官方出厂镜像。",
@@ -95,5 +95,5 @@ S = {
     "as_ton": "Toncoin（TON）",
     "as_copied": "地址已复制",
     "as_version": "版本 %1$s",
-    "as_about": "AEmulator 可在现代手机上运行经典 Android 固件。免费且开源。",
+    "as_about": "ZEmu 可在现代手机上运行经典 Android 固件。免费且开源。",
 }

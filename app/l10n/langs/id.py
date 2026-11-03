@@ -13,7 +13,7 @@ S = {
     "name": "Nama",
     "save": "Simpan",
     "storage_title": "Folder bersama untuk sistem",
-    "storage_text": "Izinkan akses ke semua file: kartu memori tiap sistem akan berada di folder AEmulator penyimpanan internal — praktis untuk APK, musik, dan foto.",
+    "storage_text": "Izinkan akses ke semua file: kartu memori tiap sistem akan berada di folder ZEmu penyimpanan internal — praktis untuk APK, musik, dan foto.",
     "allow": "Izinkan",
     "empty_title": "Belum ada sistem",
     "empty_text": "Tambahkan firmware ARM Android 2.3–6.0: ZIP recovery, arsip Odin (.tar.md5), system.img, atau factory image.",
@@ -95,5 +95,5 @@ S = {
     "as_ton": "Toncoin (TON)",
     "as_copied": "Alamat disalin",
     "as_version": "Versi %1$s",
-    "as_about": "AEmulator menjalankan firmware Android klasik di ponsel modern. Gratis dan sumber terbuka.",
+    "as_about": "ZEmu menjalankan firmware Android klasik di ponsel modern. Gratis dan sumber terbuka.",
 }

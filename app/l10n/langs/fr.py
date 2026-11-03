@@ -13,7 +13,7 @@ S = {
     "name": "Nom",
     "save": "Enregistrer",
     "storage_title": "Dossier partagé des systèmes",
-    "storage_text": "Autorisez l’accès à tous les fichiers : la carte mémoire de chaque système sera dans le dossier AEmulator du stockage interne, pratique pour les APK, la musique et les photos.",
+    "storage_text": "Autorisez l’accès à tous les fichiers : la carte mémoire de chaque système sera dans le dossier ZEmu du stockage interne, pratique pour les APK, la musique et les photos.",
     "allow": "Autoriser",
     "empty_title": "Aucun système pour l’instant",
     "empty_text": "Ajoutez une ROM ARM pour Android 2.3–6.0 : ZIP recovery, archive Odin (.tar.md5), system.img ou image d’usine.",
@@ -95,5 +95,5 @@ S = {
     "as_ton": "Toncoin (TON)",
     "as_copied": "Adresse copiée",
     "as_version": "Version %1$s",
-    "as_about": "AEmulator fait tourner les anciennes ROM Android sur les téléphones modernes. Gratuit et open source.",
+    "as_about": "ZEmu fait tourner les anciennes ROM Android sur les téléphones modernes. Gratuit et open source.",
 }

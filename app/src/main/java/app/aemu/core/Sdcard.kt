@@ -20,7 +20,7 @@ object Sdcard {
     fun setup(ctx: Context, paths: VmPaths, img: GuestImage, log: (String) -> Unit): File? {
         val d = choose(ctx, img, log) ?: return null
         LAYOUT.forEach { File(d, it).mkdirs() }
-        val readme = File(d, "README-AEmulator.txt")
+        val readme = File(d, "README-ZEmu.txt")
         if (!readme.isFile) runCatching {
             readme.writeText(
                 "Shared folder of image \"${img.name}\".\n" +
@@ -49,7 +49,7 @@ object Sdcard {
         val tries = ArrayList<File>()
         runCatching {
             if (Environment.getExternalStorageState() == Environment.MEDIA_MOUNTED) {
-                tries.add(File(File(Environment.getExternalStorageDirectory(), "AEmulator"), "$safe (${img.id})"))
+                tries.add(File(File(Environment.getExternalStorageDirectory(), "ZEmu"), "$safe (${img.id})"))
             }
         }
         ctx.getExternalFilesDir(null)?.let { tries.add(File(it, "sdcard-${img.id}")) }

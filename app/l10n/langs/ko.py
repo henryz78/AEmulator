@@ -13,7 +13,7 @@ S = {
     "name": "이름",
     "save": "저장",
     "storage_title": "시스템 공유 폴더",
-    "storage_text": "모든 파일 접근을 허용하면 각 시스템의 메모리 카드가 내부 저장소의 AEmulator 폴더에 생겨 APK, 음악, 사진을 넣기 편합니다.",
+    "storage_text": "모든 파일 접근을 허용하면 각 시스템의 메모리 카드가 내부 저장소의 ZEmu 폴더에 생겨 APK, 음악, 사진을 넣기 편합니다.",
     "allow": "허용",
     "empty_title": "아직 시스템이 없습니다",
     "empty_text": "Android 2.3–6.0용 ARM 펌웨어를 추가하세요: 리커버리 ZIP, Odin 아카이브(.tar.md5), system.img 또는 팩토리 이미지.",
@@ -95,5 +95,5 @@ S = {
     "as_ton": "Toncoin(TON)",
     "as_copied": "주소가 복사되었습니다",
     "as_version": "버전 %1$s",
-    "as_about": "AEmulator는 최신 휴대폰에서 클래식 Android 펌웨어를 실행합니다. 무료 오픈 소스입니다.",
+    "as_about": "ZEmu는 최신 휴대폰에서 클래식 Android 펌웨어를 실행합니다. 무료 오픈 소스입니다.",
 }

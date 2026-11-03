@@ -4,13 +4,13 @@ import android.os.Environment
 import java.io.File
 
 /**
- * Internal storage/aemulator/firmware: firmware files dropped there show up in the library for one-tap import.
- * Same folder as "AEmulator" (the shared storage is case-insensitive), next to the systems' memory cards.
+ * Internal storage/zemu/firmware: firmware files dropped there show up in the library for one-tap import.
+ * Same folder as "ZEmu" (the shared storage is case-insensitive), next to the systems' memory cards.
  */
 object FirmwareFolder {
     private val EXT = Regex("""(?i).*\.(zip|7z|rar|tar|md5|tgz|gz|xz|bz2|tbz2?|lz4|br|img|win|ext4|pac|ftf|sin|bin|iso|yaffs2|rfs|simg|ozip|ofp|kdz)$""")
 
-    val dir: File get() = File(Environment.getExternalStorageDirectory(), "aemulator/firmware")
+    val dir: File get() = File(Environment.getExternalStorageDirectory(), "zemu/firmware")
 
     /** Firmware files, newest first; empty when there is no all-files access. */
     fun list(): List<File> = runCatching {

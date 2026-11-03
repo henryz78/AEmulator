@@ -13,7 +13,7 @@ S = {
     "name": "Name",
     "save": "Speichern",
     "storage_title": "Gemeinsamer Ordner für Systeme",
-    "storage_text": "Erlaube den Zugriff auf alle Dateien: Dann liegt die Speicherkarte jedes Systems im Ordner AEmulator des internen Speichers – praktisch für APKs, Musik und Fotos.",
+    "storage_text": "Erlaube den Zugriff auf alle Dateien: Dann liegt die Speicherkarte jedes Systems im Ordner ZEmu des internen Speichers – praktisch für APKs, Musik und Fotos.",
     "allow": "Erlauben",
     "empty_title": "Noch keine Systeme",
     "empty_text": "Füge eine ARM-Firmware für Android 2.3–6.0 hinzu: Recovery-ZIP, Odin-Archiv (.tar.md5), system.img oder Factory-Image.",
@@ -95,5 +95,5 @@ S = {
     "as_ton": "Toncoin (TON)",
     "as_copied": "Adresse kopiert",
     "as_version": "Version %1$s",
-    "as_about": "AEmulator bringt klassische Android-Firmware auf moderne Handys. Kostenlos und quelloffen.",
+    "as_about": "ZEmu bringt klassische Android-Firmware auf moderne Handys. Kostenlos und quelloffen.",
 }
