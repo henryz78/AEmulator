@@ -5,6 +5,7 @@ import androidx.compose.ui.res.stringResource
 import android.annotation.SuppressLint
 import android.content.Context
 import androidx.compose.foundation.gestures.detectDragGestures
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.layout.offset
@@ -36,6 +37,7 @@ import androidx.compose.material3.Slider
 import androidx.compose.material3.Switch
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.input.pointer.positionChange
 import androidx.compose.ui.unit.IntOffset
 import kotlin.math.roundToInt
 import android.content.ClipData
@@ -91,6 +93,8 @@ import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.CropSquare
 import androidx.compose.material.icons.rounded.Menu
 import androidx.compose.material.icons.rounded.MoreVert
+import androidx.compose.material.icons.rounded.ChevronRight
+import androidx.compose.material.icons.rounded.ChevronLeft
 import androidx.compose.material.icons.rounded.PowerSettingsNew
 import androidx.compose.material.icons.rounded.Terminal
 import androidx.compose.material.icons.rounded.Circle
@@ -156,6 +160,8 @@ class VmActivity : ComponentActivity() {
     /** this system's setting "Notification light" (the settings sheet changes it while the system runs) */
     private var showLed by mutableStateOf(true)
     private var guestTopPx by mutableStateOf(0)
+    /** the guest picture covers the whole window (the "match the phone" size): the nav bar becomes a small dock */
+    private var guestFull by mutableStateOf(false)
     private val logLines = mutableStateListOf<String>()
 
     @SuppressLint("ClickableViewAccessibility")
@@ -234,6 +240,7 @@ class VmActivity : ComponentActivity() {
         root.addOnLayoutChangeListener { v, l, t, r, b, _, _, _, _ ->
             // a guest picture as big as the window (the "match the phone" size): edge to edge, no insets, no bar
             val full = gw >= r - l - 4 && gh >= b - t - 4
+            if (guestFull != full) guestFull = full
             // (and the phone's own bars out of the way; a swipe from the edge brings them back for a moment)
             androidx.core.view.WindowCompat.getInsetsController(window, root).apply {
                 systemBarsBehavior = androidx.core.view.WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
@@ -269,6 +276,7 @@ class VmActivity : ComponentActivity() {
         vm.onLog { line -> runOnUiThread { logLines.add(line); if (logLines.size > 400) logLines.removeRange(0, logLines.size - 400) } }
         guest.start()
         loadMenuOffset()
+        loadDockOffset()
 
         onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
             override fun handleOnBackPressed() { vm.input.press(InputService.KEY_BACK) }
@@ -386,6 +394,11 @@ class VmActivity : ComponentActivity() {
     private var menuOffset by mutableStateOf(Offset.Zero)
     private fun loadMenuOffset() { menuOffset = Offset(uiPrefs.getFloat("menu_x", 0f), uiPrefs.getFloat("menu_y", 0f)) }
     private fun saveMenuOffset() { uiPrefs.edit().putFloat("menu_x", menuOffset.x).putFloat("menu_y", menuOffset.y).apply() }
+    private var dockOffset by mutableStateOf(Offset.Zero)
+    private var dockOpen by mutableStateOf(false)
+    private var dockTick by mutableStateOf(0)
+    private fun loadDockOffset() { dockOffset = Offset(uiPrefs.getFloat("dock_x", 0f), uiPrefs.getFloat("dock_y", 0f)) }
+    private fun saveDockOffset() { uiPrefs.edit().putFloat("dock_x", dockOffset.x).putFloat("dock_y", dockOffset.y).apply() }
 
     private val askMic = registerForActivityResult(ActivityResultContracts.RequestPermission()) { ok -> if (ok) vm.mic.permissionGranted() }
 
@@ -403,6 +416,23 @@ class VmActivity : ComponentActivity() {
     private fun pasteToGuest() {
         val text = getSystemService(ClipboardManager::class.java).primaryClip?.getItemAt(0)?.coerceToText(this)?.toString().orEmpty()
         if (text.isEmpty()) { toast(getString(R.string.m_clip_empty)); return }
+        // The text goes on the guest's clipboard in one go (app.aemu.stub.Clip), then one paste key: instant, any
+        // language, and it lands where the focus is when the key arrives, not where it was when the typing began.
+        if (vm.img.api >= 19 && java.io.File(vm.paths.root, "system/framework/aemu-stubs.jar").isFile) {
+            val file = java.io.File(vm.paths.root, "data/local/tmp/.aemu-paste.txt")
+            thread {
+                val ok = runCatching { file.parentFile?.mkdirs(); file.writeText(text.take(200_000)) }.isSuccess
+                if (!ok) { toast(getString(R.string.m_failed)); return@thread }
+                val out = runCatching {
+                    vm.guestShell("CLASSPATH=/system/framework/aemu-stubs.jar app_process /system/bin app.aemu.stub.Run " +
+                        "app.aemu.stub.Clip /data/local/tmp/.aemu-paste.txt && input keyevent 279", 60_000)
+                }.getOrElse { it.toString() }
+                file.delete()
+                if (out.contains("Exception")) { vm.log("paste: ${out.take(300)}"); toast(getString(R.string.m_failed)) }
+            }
+            return
+        }
+        // (images without the stubs: typed key by key, as before)
         // Normalize line endings and truncate extreme paste payloads
         val lines = text.replace("\r\n", "\n").replace('\r', '\n').split('\n')
         val safeLines = if (lines.size > 150) lines.take(150) else lines
@@ -843,7 +873,7 @@ class VmActivity : ComponentActivity() {
                         leadingIcon = { Icon(Icons.Rounded.Cast, null) },
                         onClick = { menu = false; toggleVnc() })
                     DropdownMenuItem(text = { Text(stringResource(R.string.m_reset_menu_pos)) }, leadingIcon = { Icon(Icons.Rounded.RestartAlt, null) },
-                        onClick = { menu = false; menuOffset = Offset.Zero; saveMenuOffset() })
+                        onClick = { menu = false; menuOffset = Offset.Zero; saveMenuOffset(); dockOffset = Offset.Zero; saveDockOffset() })
                     HorizontalDivider()
                     DropdownMenuItem(text = { Text(stringResource(R.string.m_reboot)) }, leadingIcon = { Icon(Icons.Rounded.RestartAlt, null) },
                         onClick = { menu = false; rebootVm() })
@@ -867,27 +897,86 @@ class VmActivity : ComponentActivity() {
 
             // панель кнопок Android
             if (vm.settings.showNavBar && !showLog && !showTerm) {
-                NavBar(Modifier.align(Alignment.BottomCenter).navigationBarsPadding().padding(bottom = if (vm.settings.navSize == 0) 3.dp else 6.dp))
+                LaunchedEffect(dockOpen, dockTick) { if (dockOpen) { delay(4_000); dockOpen = false } }
+                if (guestFull) NavDock(Modifier.align(Alignment.BottomEnd), constraints.maxWidth.toFloat(), constraints.maxHeight.toFloat())
+                else NavBar(Modifier.align(Alignment.BottomCenter).navigationBarsPadding().padding(bottom = if (vm.settings.navSize == 0) 3.dp else 6.dp), onUse = { dockTick++ })
             }
         }
     }
 
     /** The bar of guest buttons: the user's own set, each held down in the guest for as long as it is held here. */
     @Composable
-    private fun NavBar(modifier: Modifier) {
+    private fun NavBar(modifier: Modifier, onUse: () -> Unit = {}) {
         val compact = vm.settings.navSize == 0
         val keys = remember { vm.settings.navKeys.split(',').filter { it in app.aemu.core.VmSettings.NAV_ALL } }
         if (keys.isEmpty()) return
         Surface(shape = CircleShape, color = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.92f), modifier = modifier) {
             Row(Modifier.padding(horizontal = if (compact) 6.dp else 10.dp, vertical = if (compact) 2.dp else 6.dp),
                 horizontalArrangement = Arrangement.spacedBy(if (compact) 6.dp else 4.dp)) {
-                for (k in keys) NavKey(k, if (compact) 36.dp else 48.dp)
+                for (k in keys) NavKey(k, if (compact) 36.dp else 48.dp, onUse)
+            }
+        }
+    }
+
+    /**
+     * The nav bar of a full-window guest, kept out of the picture's way: a small capsule that can be dragged anywhere
+     * (the place is kept) with a Home circle (tap: Home, long press: Recents) and an arrow beside it. The arrow opens
+     * the capsule into the bar's own keys; another arrow, or a few seconds without a key, folds it back. Back is the
+     * phone's own edge swipe, which goes to the guest.
+     */
+    @Composable
+    private fun NavDock(modifier: Modifier, maxW: Float, maxH: Float) {
+        val density = androidx.compose.ui.platform.LocalDensity.current
+        val keys = remember { vm.settings.navKeys.split(',').filter { it in app.aemu.core.VmSettings.NAV_ALL } }
+        val margin = with(density) { 16.dp.toPx() }
+        val foldedW = with(density) { 88.dp.toPx() }
+        val openW = with(density) { (keys.size * 44 + 52).dp.toPx() }
+        val boxH = with(density) { 48.dp.toPx() }
+        val haptic = androidx.compose.ui.platform.LocalHapticFeedback.current
+        // (the offset counts from the bottom end corner: zero or negative)
+        fun clamp(o: Offset) = Offset(o.x.coerceIn(-(maxW - foldedW - 2 * margin).coerceAtLeast(0f), 0f), o.y.coerceIn(-(maxH - boxH - 2 * margin).coerceAtLeast(0f), 0f))
+        LaunchedEffect(maxW, maxH) { dockOffset = clamp(dockOffset) }
+        // opened, the capsule grows to the left: where that would leave the screen it is held back inside
+        val x = if (dockOpen) dockOffset.x.coerceAtLeast(-(maxW - openW - 2 * margin).coerceAtLeast(0f)) else dockOffset.x
+        Surface(
+            shape = CircleShape,
+            color = MaterialTheme.colorScheme.secondaryContainer,    // as the menu button at the top: readable on dark too
+            shadowElevation = 3.dp,
+            modifier = modifier.padding(16.dp).offset { IntOffset(x.roundToInt(), dockOffset.y.roundToInt()) }
+                .then(if (dockOpen) Modifier else Modifier.pointerInput(Unit) {
+                    detectDragGestures(onDragEnd = { saveDockOffset() }) { ch, d -> ch.consume(); dockOffset = clamp(dockOffset + d) }
+                }),
+        ) {
+            Row(Modifier.padding(horizontal = 4.dp, vertical = 2.dp), verticalAlignment = Alignment.CenterVertically) {
+                if (dockOpen) {
+                    for (k in keys) NavKey(k, 44.dp) { dockTick++ }
+                    IconButton(onClick = { dockOpen = false }, modifier = Modifier.size(36.dp)) {
+                        Icon(Icons.Rounded.ChevronRight, contentDescription = null)
+                    }
+                } else {
+                    IconButton(onClick = { dockOpen = true; dockTick++ }, modifier = Modifier.size(36.dp)) {
+                        Icon(Icons.Rounded.ChevronLeft, contentDescription = null)
+                    }
+                    var pressed by remember { mutableStateOf(false) }
+                    val bg by androidx.compose.animation.animateColorAsState(
+                        if (pressed) MaterialTheme.colorScheme.primary.copy(alpha = 0.28f) else Color.Transparent, label = "dock")
+                    Box(Modifier.size(44.dp).background(bg, CircleShape).pointerInput(Unit) {
+                        detectTapGestures(
+                            onPress = { pressed = true; tryAwaitRelease(); pressed = false },
+                            onTap = { vm.input.press(InputService.KEY_HOME) },
+                            onLongPress = {
+                                haptic.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.LongPress)
+                                vm.input.recents(vm.img.api, vm.img.skin)
+                            },
+                        )
+                    }, contentAlignment = Alignment.Center) { Icon(Icons.Rounded.Circle, navKeyLabel("home"), Modifier.size(24.dp)) }
+                }
             }
         }
     }
 
     @Composable
-    private fun NavKey(k: String, size: androidx.compose.ui.unit.Dp) {
+    private fun NavKey(k: String, size: androidx.compose.ui.unit.Dp, onUse: () -> Unit = {}) {
         var pressed by remember { mutableStateOf(false) }
         val bg by androidx.compose.animation.animateColorAsState(
             if (pressed) MaterialTheme.colorScheme.primary.copy(alpha = 0.28f) else Color.Transparent, label = "key")
@@ -901,6 +990,7 @@ class VmActivity : ComponentActivity() {
             awaitEachGesture {
                 val down = awaitFirstDown()
                 pressed = true
+                onUse()
                 val t0 = android.os.SystemClock.uptimeMillis()
                 if (k == "home") vm.input.home(true)
                 else if (code != 0) vm.input.key(code, true)
