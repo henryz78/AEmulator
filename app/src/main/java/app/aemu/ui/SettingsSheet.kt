@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
@@ -53,6 +54,18 @@ private val RESOLUTIONS = listOf(
     Res("720×1280", 720, 1280, 320),
 )
 
+private fun hostScreen(ctx: android.content.Context): Triple<Int, Int, Int> = runCatching {
+    val wm = ctx.getSystemService(android.view.WindowManager::class.java) ?: return Triple(720, 1280, 320)
+    if (android.os.Build.VERSION.SDK_INT >= 30) {
+        val b = wm.maximumWindowMetrics.bounds
+        Triple(b.width(), b.height(), ctx.resources.displayMetrics.densityDpi)
+    } else {
+        val p = android.graphics.Point()
+        @Suppress("DEPRECATION") wm.defaultDisplay.getRealSize(p)
+        Triple(p.x, p.y, ctx.resources.displayMetrics.densityDpi)
+    }
+}.getOrDefault(Triple(720, 1280, 320))
+
 private val FPS_STEPS = listOf(60, 90, 120, 144)
 private val RAM_STEPS = listOf(0, 256, 512, 768, 1024, 1536, 2048, 3072, 4096)
 
@@ -71,19 +84,28 @@ fun SettingsSheet(img: GuestImage, onDismiss: () -> Unit, onSave: (VmSettings) -
             if (s.legacyEngine && img.api < 14) {
                 Text(stringResource(R.string.vs_fixed_2x), style = MaterialTheme.typography.bodyMedium)
             } else {
-                Row(horizontalArrangement = Arrangement.spacedBy(ButtonGroupDefaults.ConnectedSpaceBetween), modifier = Modifier.fillMaxWidth()) {
+                val ctx = androidx.compose.ui.platform.LocalContext.current
+                val (hostW, hostH, hostDpi) = remember {
+                    val hw = hostScreen(ctx)
+                    Triple((hw.first and 0x7ffffffe).coerceIn(240, 2160), (hw.second and 0x7ffffffe).coerceIn(320, 3840), hw.third.coerceIn(96, 640))
+                }
+                Row(horizontalArrangement = Arrangement.spacedBy(ButtonGroupDefaults.ConnectedSpaceBetween),
+                    modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState())) {
                     RESOLUTIONS.forEachIndexed { i, r ->
                         ToggleButton(
-                            checked = s.width == r.w && s.height == r.h,
+                            checked = s.width == r.w && s.height == r.h && s.density == r.dpi,
                             onCheckedChange = { s = s.copy(width = r.w, height = r.h, density = r.dpi) },
-                            shapes = when (i) {
-                                0 -> ButtonGroupDefaults.connectedLeadingButtonShapes()
-                                RESOLUTIONS.lastIndex -> ButtonGroupDefaults.connectedTrailingButtonShapes()
-                                else -> ButtonGroupDefaults.connectedMiddleButtonShapes()
-                            },
-                            modifier = Modifier.weight(1f).semantics { role = Role.RadioButton },
-                        ) { Text(r.label) }
+                            shapes = if (i == 0) ButtonGroupDefaults.connectedLeadingButtonShapes() else ButtonGroupDefaults.connectedMiddleButtonShapes(),
+                            modifier = Modifier.semantics { role = Role.RadioButton },
+                        ) { Text(r.label, maxLines = 1, softWrap = false) }
                     }
+                    // the phone's own screen: the guest gets its size and density, and fills the window edge to edge
+                    ToggleButton(
+                        checked = s.width == hostW && s.height == hostH && s.density == hostDpi,
+                        onCheckedChange = { s = s.copy(width = hostW, height = hostH, density = hostDpi) },
+                        shapes = ButtonGroupDefaults.connectedTrailingButtonShapes(),
+                        modifier = Modifier.semantics { role = Role.RadioButton },
+                    ) { Text(stringResource(R.string.vs_screen_follow), maxLines = 1, softWrap = false) }
                 }
                 Spacer(Modifier.height(8.dp))
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
@@ -151,7 +173,8 @@ fun SettingsSheet(img: GuestImage, onDismiss: () -> Unit, onSave: (VmSettings) -
 
             Spacer(Modifier.height(8.dp))
             Text(stringResource(R.string.vs_root_title), style = MaterialTheme.typography.titleMedium)
-            val rootOk = img.engine == app.aemu.core.Engine.N64
+            // (the architecture is known from the import; the engine field is only settled at the first start)
+            val rootOk = img.abi == "arm64-v8a"
             Toggle(
                 stringResource(R.string.vs_root),
                 if (rootOk) stringResource(R.string.vs_root_sub) else stringResource(R.string.vs_root_unsupported),

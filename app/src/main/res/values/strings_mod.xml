@@ -15,4 +15,5 @@
     <string name="su_once">Allow once</string>
     <string name="su_deny">Deny</string>
     <string name="su_denied_bg">Root request from %1$s denied: AEmulator was not on screen</string>
+    <string name="vs_screen_follow">Match the phone</string>
 </resources>

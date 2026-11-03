@@ -15,4 +15,5 @@
     <string name="su_once">仅本次</string>
     <string name="su_deny">拒绝</string>
     <string name="su_denied_bg">已拒绝 %1$s 的 root 请求：当时 AEmulator 不在前台</string>
+    <string name="vs_screen_follow">跟随手机</string>
 </resources>

@@ -232,15 +232,22 @@ class VmActivity : ComponentActivity() {
             ins
         }
         root.addOnLayoutChangeListener { v, l, t, r, b, _, _, _, _ ->
-            val navPx = (navDp * resources.displayMetrics.density).toInt()
+            // a guest picture as big as the window (the "match the phone" size): edge to edge, no insets, no bar
+            val full = gw >= r - l - 4 && gh >= b - t - 4
+            // (and the phone's own bars out of the way; a swipe from the edge brings them back for a moment)
+            androidx.core.view.WindowCompat.getInsetsController(window, root).apply {
+                systemBarsBehavior = androidx.core.view.WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+                if (full) hide(androidx.core.view.WindowInsetsCompat.Type.systemBars()) else show(androidx.core.view.WindowInsetsCompat.Type.systemBars())
+            }
+            val navPx = if (full) 0 else (navDp * resources.displayMetrics.density).toInt()
             val aw = r - l
-            val ah = b - t - navPx - safeTop - safeBottom
+            val ah = b - t - navPx - if (full) 0 else (safeTop + safeBottom)
             if (aw <= 0 || ah <= 0) return@addOnLayoutChangeListener
             val scale = minOf(aw.toFloat() / gw, ah.toFloat() / gh)
             val w = (gw * scale).toInt()
             val h = (gh * scale).toInt()
             val lp = box.layoutParams as FrameLayout.LayoutParams
-            val top = safeTop + (ah - h) / 2
+            val top = if (full) 0 else safeTop + (ah - h) / 2
             if (guestTopPx != top) guestTopPx = top
             if (lp.width != w || lp.height != h || lp.topMargin != top) {
                 lp.width = w; lp.height = h
