@@ -308,6 +308,8 @@ class GuestVm(val ctx: Context, val img: GuestImage) {
         // MIUI 10 forces the density of the phone's own panel from this one (440 on a 540-pixel screen)
         if (listOf("system/build.prop", "vendor/build.prop").any { runCatching { File(paths.root, it).readText() }.getOrDefault("").contains("persist.miui.density_v2") }) overrides["persist.miui.density_v2"] = s.density.toString()
         overrides["ro.aemu.host"] = if (engine == Engine.N64) "native" else "qemu-user"
+        // the native engine's hwcomposer (native/hwchal) takes its refresh rate from here
+        if (engine == Engine.N64) overrides["debug.aemu.fps"] = s.fbHz.coerceIn(30, 240).toString()
         if (engine == Engine.N64) {
             // the phone runs arm64 code only: the 32-bit zygote and its apps go through qemu-arm when it is there
             if (n64Has32) {
@@ -947,6 +949,12 @@ class GuestVm(val ctx: Context, val img: GuestImage) {
         r.run(listOf("/system/bin/sh", "-c", "export PATH=/system/bin:/system/xbin:\$PATH; svc power stayon true"), 60_000)
         if (engine == Engine.N64 && kernel.webViewSingleProcess)
             runCatching { guestShell("cmd webviewupdate disable-multiprocess", 30_000) }
+        // the framework caps what apps render at 60 unless peak and min refresh rate are raised (the display itself
+        // already reports the rate from debug.aemu.fps: 144 Hz displayed, apps at 48)
+        if (engine == Engine.N64 && img.api >= 28) {
+            val hz = settings.fbHz.coerceIn(30, 240)
+            runCatching { guestShell("settings put system peak_refresh_rate $hz; settings put system min_refresh_rate $hz", 30_000) }
+        }
         TreeFixer(ctx, paths, img, ::log).noScreenSleep()
         disableBrokenComponents()
         if (img.api >= 24) runCatching { enableHome() }.onFailure { log("home screen check failed: $it") }

@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="vs_fps">刷新率 (Hz)</string>
+    <string name="vs_fps_sub">虚拟系统屏幕上报的刷新率。手机性能够用时越高越流畅,下次启动生效。</string>
+</resources>

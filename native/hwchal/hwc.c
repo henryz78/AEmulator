@@ -124,6 +124,8 @@ enum { L_FRAMEBUFFER = 0, L_OVERLAY = 1, L_BACKGROUND = 2, L_TARGET = 3 };
 #define FMT_RGBA 1
 #define FMT_RGBX 2
 #define VSYNC_NS 16666666L
+/* The refresh period handed to SurfaceFlinger and used for the vsync events: 60 Hz unless debug.aemu.fps says another. */
+static long period_ns = VSYNC_NS;
 
 static void *base_of(struct hwc *d, const void *handle) {
     void *va = 0;
@@ -268,7 +270,7 @@ static int hwc_query(struct hwc *d, int what, int *value) {
     (void)d;
     switch (what) {
     case 0: *value = 0; return 0;                   /* no background layer */
-    case 1: *value = (int)VSYNC_NS; return 0;
+    case 1: *value = (int)period_ns; return 0;
     case 2: *value = 1; return 0;                   /* the primary display only */
     }
     return -22;
@@ -284,7 +286,7 @@ static int hwc_get_configs(struct hwc *d, int disp, uint32_t *configs, size_t *n
 static int hwc_get_attributes(struct hwc *d, int disp, uint32_t config, const uint32_t *attrs, int32_t *values) {
     if (disp || config) return -22;
     for (int i = 0; attrs[i]; i++) switch (attrs[i]) {
-    case 1: values[i] = (int32_t)VSYNC_NS; break;
+    case 1: values[i] = (int32_t)period_ns; break;
     case 2: values[i] = d->w; break;
     case 3: values[i] = d->h; break;
     case 4: case 5: values[i] = 160000; break;      /* as the plain framebuffer reports; the density is a property */
@@ -298,7 +300,7 @@ static void *vsync_thread(void *arg) {
     struct timespec64 t;
     clock_gettime(1 /* MONOTONIC */, &t);
     for (;;) {
-        t.tv_nsec += VSYNC_NS;
+        t.tv_nsec += period_ns;
         if (t.tv_nsec >= 1000000000L) { t.tv_nsec -= 1000000000L; t.tv_sec++; }
         clock_nanosleep(1, 1 /* TIMER_ABSTIME */, &t, 0);
         const struct procs *p = d->procs;
@@ -327,6 +329,12 @@ static int hwc_open(const struct hw_module *m, const char *id, struct hw_device 
         if (hw_get_module("gralloc", &g) == 0) d->gralloc = g;
         char mode[92] = {0};
         d->gl = -1;
+        {   /* debug.aemu.fps: the refresh rate in Hz (30..240) the guest is told it has */
+            char hz[92] = {0};
+            long v = 0;
+            if (__system_property_get("debug.aemu.fps", hz) > 0) for (int i = 0; hz[i] >= '0' && hz[i] <= '9'; i++) v = v * 10 + (hz[i] - '0');
+            if (v >= 30 && v <= 240) period_ns = 1000000000L / v;
+        }
         d->direct = __system_property_get("debug.aemu.gl", mode) > 0 && mode[0] == '3';
         int fd = open("/dev/graphics/fb0", 2 /* O_RDWR */);
         uint32_t var[40] = {0};

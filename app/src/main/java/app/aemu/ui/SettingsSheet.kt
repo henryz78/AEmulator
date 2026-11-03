@@ -53,6 +53,7 @@ private val RESOLUTIONS = listOf(
     Res("720×1280", 720, 1280, 320),
 )
 
+private val FPS_STEPS = listOf(60, 90, 120, 144)
 private val RAM_STEPS = listOf(0, 256, 512, 768, 1024, 1536, 2048, 3072, 4096)
 
 @Composable
@@ -119,6 +120,32 @@ fun SettingsSheet(img: GuestImage, onDismiss: () -> Unit, onSave: (VmSettings) -
                 },
                 colors = ListItemDefaults.colors(containerColor = Color.Transparent),
             )
+            if (img.abi == "arm64-v8a") {
+                ListItem(
+                    headlineContent = { Text(stringResource(R.string.vs_fps)) },
+                    supportingContent = {
+                        Column {
+                            Text(stringResource(R.string.vs_fps_sub))
+                            Spacer(Modifier.height(8.dp))
+                            Row(horizontalArrangement = Arrangement.spacedBy(ButtonGroupDefaults.ConnectedSpaceBetween), modifier = Modifier.fillMaxWidth()) {
+                                FPS_STEPS.forEachIndexed { i, hz ->
+                                    ToggleButton(
+                                        checked = s.fbHz == hz,
+                                        onCheckedChange = { s = s.copy(fbHz = hz) },
+                                        shapes = when (i) {
+                                            0 -> ButtonGroupDefaults.connectedLeadingButtonShapes()
+                                            FPS_STEPS.lastIndex -> ButtonGroupDefaults.connectedTrailingButtonShapes()
+                                            else -> ButtonGroupDefaults.connectedMiddleButtonShapes()
+                                        },
+                                        modifier = Modifier.weight(1f).semantics { role = Role.RadioButton },
+                                    ) { Text("$hz") }
+                                }
+                            }
+                        }
+                    },
+                    colors = ListItemDefaults.colors(containerColor = Color.Transparent),
+                )
+            }
             Toggle(stringResource(R.string.vs_lowram), stringResource(R.string.vs_lowram_sub), s.lowRam) { s = s.copy(lowRam = it) }
             Toggle(stringResource(R.string.vs_proxy), stringResource(R.string.vs_proxy_sub), s.netProxy) { s = s.copy(netProxy = it) }
 

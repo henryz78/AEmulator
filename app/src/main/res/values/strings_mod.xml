@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="vs_fps">Refresh rate (Hz)</string>
+    <string name="vs_fps_sub">What the guest screen reports. Higher is smoother if the phone can keep up; applies at the next start.</string>
+</resources>

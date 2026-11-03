@@ -188,8 +188,15 @@ class VmActivity : ComponentActivity() {
         box = FrameLayout(this)
         surfaceView = SurfaceView(this)
         surfaceView.holder.addCallback(object : SurfaceHolder.Callback {
-            override fun surfaceCreated(h: SurfaceHolder) { vm.surface = h.surface }
-            override fun surfaceChanged(h: SurfaceHolder, f: Int, w: Int, ht: Int) { vm.surface = h.surface }
+            // 11+: tell the phone's display how fast the guest draws, so a 90/120 Hz panel runs at that rate
+            // instead of settling at 60 for a view that never asked for more
+            private fun hint(h: SurfaceHolder) {
+                if (android.os.Build.VERSION.SDK_INT >= 30 && vm.engine == Engine.N64) runCatching {
+                    h.surface.setFrameRate(s.fbHz.toFloat(), android.view.Surface.FRAME_RATE_COMPATIBILITY_DEFAULT)
+                }
+            }
+            override fun surfaceCreated(h: SurfaceHolder) { vm.surface = h.surface; hint(h) }
+            override fun surfaceChanged(h: SurfaceHolder, f: Int, w: Int, ht: Int) { vm.surface = h.surface; hint(h) }
             override fun surfaceDestroyed(h: SurfaceHolder) { vm.surface = null }
         })
         guestW = gw; guestH = gh
