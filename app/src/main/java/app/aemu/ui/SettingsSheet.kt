@@ -150,6 +150,22 @@ fun SettingsSheet(img: GuestImage, onDismiss: () -> Unit, onSave: (VmSettings) -
             Toggle(stringResource(R.string.vs_proxy), stringResource(R.string.vs_proxy_sub), s.netProxy) { s = s.copy(netProxy = it) }
 
             Spacer(Modifier.height(8.dp))
+            Text(stringResource(R.string.vs_root_title), style = MaterialTheme.typography.titleMedium)
+            val rootOk = img.engine == app.aemu.core.Engine.N64
+            Toggle(
+                stringResource(R.string.vs_root),
+                if (rootOk) stringResource(R.string.vs_root_sub) else stringResource(R.string.vs_root_unsupported),
+                s.root && rootOk
+            ) { if (rootOk) s = s.copy(root = it) }
+            if (rootOk && s.root) {
+                val ctx = androidx.compose.ui.platform.LocalContext.current
+                TextButton(onClick = {
+                    app.aemu.core.SuServer.forget(app.aemu.core.VmPaths(ctx, img.id))
+                    android.widget.Toast.makeText(ctx, ctx.getString(R.string.vs_root_reset_done), android.widget.Toast.LENGTH_SHORT).show()
+                }) { Text(stringResource(R.string.vs_root_reset)) }
+            }
+
+            Spacer(Modifier.height(8.dp))
             Text(stringResource(R.string.vs_radio_title), style = MaterialTheme.typography.titleMedium)
             Toggle(stringResource(R.string.vs_radio), stringResource(R.string.vs_radio_sub), s.radio) { s = s.copy(radio = it) }
             if (s.radio) Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {

@@ -2,4 +2,17 @@
 <resources>
     <string name="vs_fps">Refresh rate (Hz)</string>
     <string name="vs_fps_sub">What the guest screen reports. Higher is smoother if the phone can keep up; applies at the next start.</string>
+    <string name="vs_root_title">Root</string>
+    <string name="vs_root">Root access (su)</string>
+    <string name="vs_root_sub">Puts su in /system/xbin: an app that asks for root waits for your answer here. Takes effect at the next start of the system.</string>
+    <string name="vs_root_unsupported">Only for firmware on the native arm64 engine (Android 5.0 and newer)</string>
+    <string name="vs_root_reset">Forget root decisions</string>
+    <string name="vs_root_reset_done">Root decisions forgotten</string>
+    <string name="su_title">Root request</string>
+    <string name="su_text">%1$s (uid %2$d) asks for root access.</string>
+    <string name="su_cmd">Command: %1$s</string>
+    <string name="su_always">Always allow</string>
+    <string name="su_once">Allow once</string>
+    <string name="su_deny">Deny</string>
+    <string name="su_denied_bg">Root request from %1$s denied: AEmulator was not on screen</string>
 </resources>

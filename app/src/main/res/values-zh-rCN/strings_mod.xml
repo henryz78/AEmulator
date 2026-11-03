@@ -2,4 +2,17 @@
 <resources>
     <string name="vs_fps">刷新率 (Hz)</string>
     <string name="vs_fps_sub">虚拟系统屏幕上报的刷新率。手机性能够用时越高越流畅,下次启动生效。</string>
+    <string name="vs_root_title">Root</string>
+    <string name="vs_root">Root 权限（su）</string>
+    <string name="vs_root_sub">在 /system/xbin 放入 su：应用申请 root 时会在这里弹窗等你决定。下次启动系统时生效。</string>
+    <string name="vs_root_unsupported">仅支持原生 arm64 引擎的固件（Android 5.0 及以上）</string>
+    <string name="vs_root_reset">清除 root 授权记录</string>
+    <string name="vs_root_reset_done">已清除 root 授权记录</string>
+    <string name="su_title">Root 权限请求</string>
+    <string name="su_text">%1$s（uid %2$d）请求 root 权限。</string>
+    <string name="su_cmd">命令：%1$s</string>
+    <string name="su_always">总是允许</string>
+    <string name="su_once">仅本次</string>
+    <string name="su_deny">拒绝</string>
+    <string name="su_denied_bg">已拒绝 %1$s 的 root 请求：当时 AEmulator 不在前台</string>
 </resources>

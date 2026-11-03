@@ -256,6 +256,7 @@ class VmActivity : ComponentActivity() {
         vm.onState { st -> runOnUiThread { state = st } }
         vm.mic.onPermissionNeeded = { runOnUiThread { askMic.launch(android.Manifest.permission.RECORD_AUDIO) } }
         vm.camera.onPermissionNeeded = { runOnUiThread { askCamera.launch(android.Manifest.permission.CAMERA) } }
+        vm.su.onRequest = { req, answer -> runOnUiThread { askRoot(req, answer) } }
         led = vm.lights.current
         vm.lights.onChange { l -> runOnUiThread { led = l } }
         vm.onLog { line -> runOnUiThread { logLines.add(line); if (logLines.size > 400) logLines.removeRange(0, logLines.size - 400) } }
@@ -352,6 +353,7 @@ class VmActivity : ComponentActivity() {
     }
 
     override fun onDestroy() {
+        if (::vm.isInitialized) vm.su.onRequest = null
         vnc?.stop(); vnc = null
         recorder?.let { r -> thread { r.stop() } }; recorder = null
         if (::guest.isInitialized) guest.stop()
@@ -473,6 +475,29 @@ class VmActivity : ComponentActivity() {
                 else frame.recycle()
             }, android.os.Handler(mainLooper))
         }.onFailure { frame.recycle() }
+    }
+
+    /** A guest app asks for root (su): allow always / once, or deny. Only while this screen is shown. */
+    private fun askRoot(req: app.aemu.core.SuServer.Request, answer: (Boolean, Boolean) -> Unit) {
+        if (isFinishing || !lifecycle.currentState.isAtLeast(androidx.lifecycle.Lifecycle.State.STARTED)) {
+            answer(false, false)
+            toast(getString(R.string.su_denied_bg, req.app))
+            return
+        }
+        var done = false
+        val reply = { allow: Boolean, remember: Boolean -> if (!done) { done = true; answer(allow, remember) } }
+        val msg = buildString {
+            append(getString(R.string.su_text, req.app, req.uid))
+            if (req.cmd.isNotBlank()) append("\n\n").append(getString(R.string.su_cmd, req.cmd.take(300)))
+        }
+        android.app.AlertDialog.Builder(this)
+            .setTitle(R.string.su_title)
+            .setMessage(msg)
+            .setPositiveButton(R.string.su_always) { _, _ -> reply(true, true) }
+            .setNeutralButton(R.string.su_once) { _, _ -> reply(true, false) }
+            .setNegativeButton(R.string.su_deny) { _, _ -> reply(false, false) }
+            .setOnDismissListener { reply(false, false) }
+            .show()
     }
 
     /** VNC on/off. Each session gets a password of its own, shown here and in the log. */

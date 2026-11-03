@@ -112,6 +112,8 @@ class GuestVm(val ctx: Context, val img: GuestImage) {
     val mic = AudioIn(ctx, paths.root, ::log)
     /** the phone's cameras for the guest (camera HAL → /dev/socket/aemu_cam) */
     val camera = CameraFeed(ctx, paths, ::log)
+    /** root for the guest's apps: /system/xbin/su asks here (→ /dev/socket/aemu_su), see SuServer */
+    val su = SuServer(paths, ::log)
     @Volatile private var lmk: GuestLmk? = null
     val net = NetProxy(ctx, paths, ::log)
     private val dns = DnsProxy(paths, img.api, img.engine == Engine.N64 && Kernel64.forApi(img.api).dnsLayoutProbe, ::log)
@@ -256,6 +258,7 @@ class GuestVm(val ctx: Context, val img: GuestImage) {
         // 1. дерево
         val fixer = TreeFixer(ctx, paths, img, ::log)
         fixer.fixup()
+        SuServer.install(ctx, paths, settings.root && engine == Engine.N64, ::log)
         // политика звука уже подменялась раньше — обновить её файлы (обёртка/AOSP) до текущей версии
         if (File(paths.root, "system/.aemu-parked/system#lib#hw#audio_policy.default.so").isFile) swapAudioPolicy()
         GuestLog.clear(paths.root)
@@ -488,6 +491,7 @@ class GuestVm(val ctx: Context, val img: GuestImage) {
         sensors.start()
         mic.start()
         camera.start()
+        if (settings.root && engine == Engine.N64) su.start()
         if (img.api >= 21) logd.start()
         if (img.api >= 14) runCatching { dns.ensure() }
         // the RAM the guest is told it has (its /proc/meminfo, scaled by the kernel): the framework sizes its background by it
@@ -1231,7 +1235,7 @@ class GuestVm(val ctx: Context, val img: GuestImage) {
         log("stopping system")
         runCatching { guestRunner.run(listOf("/system/bin/sync"), 5_000) }
         killAll()
-        adb.stop(); props.stop(); input.stop(); frames.stop(); ril.stop(); vold.stop(); audio.stop(); net.stop(); dns.stop(); events.stop(); logd.stop(); lights.stop(); sensors.stop(); mic.stop(); camera.stop(); GlHost.stop()
+        adb.stop(); props.stop(); input.stop(); frames.stop(); ril.stop(); vold.stop(); audio.stop(); net.stop(); dns.stop(); events.stop(); logd.stop(); lights.stop(); sensors.stop(); mic.stop(); camera.stop(); su.stop(); GlHost.stop()
         extraStubs.forEach { it.stop() }; extraStubs.clear()
         lmk?.stop(); lmk = null
         Keeper.release(ctx)

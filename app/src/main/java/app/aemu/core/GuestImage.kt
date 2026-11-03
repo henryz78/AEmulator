@@ -45,6 +45,8 @@ data class VmSettings(
     val imei: String = "",
     /** extra qemu options; KEY=VALUE tokens are passed as environment variables */
     val qemuArgs: String = "",
+    /** root inside the guest: /system/xbin/su asks the app (a prompt) before an app gets uid 0 (arm64 engine) */
+    val root: Boolean = false,
 ) {
     fun toJson(): JSONObject = JSONObject()
         .put("width", width).put("height", height).put("density", density)
@@ -53,6 +55,7 @@ data class VmSettings(
         .put("showFrame", showFrame).put("showNavBar", showNavBar).put("navKeys", navKeys).put("navSize", navSize)
         .put("keepScreenOn", keepScreenOn).put("showLed", showLed).put("mtMode", mtMode).put("legacyEngine", legacyEngine)
         .put("ramMb", ramMb).put("radio", radio).put("native32", native32).put("imei", imei).put("qemuArgs", qemuArgs)
+        .put("root", root)
 
     companion object {
         const val NAV_DEFAULT = "back,home,recents,menu"
@@ -97,6 +100,7 @@ data class VmSettings(
                 native32 = o.optBoolean("native32", false),
                 imei = o.optString("imei", ""),
                 qemuArgs = o.optString("qemuArgs", ""),
+                root = o.optBoolean("root", false),
             )
         }
     }
